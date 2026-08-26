@@ -1,26 +1,57 @@
-name: Build APK
+name: Reader ai
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          java-version: '17'
-          distribution: 'temurin'
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          cd mobile
+          npm install
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Build APK with EAS
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+        run: |
+          cd mobile
+          eas build --platform android --non-interactive --wait
+
+      - name: Upload APK to artifacts
+        if: success()
+        uses: actions/upload-artifact@v3
         with:
-          gradle-version: '8.5'
-      - name: Build Debug APK
-        run: gradle assembleDebug
-      - uses: actions/upload-artifact@v4
+          name: android-apk
+          path: |
+            **/*.apk
+            **/*.aab
+
+      - name: Create Release
+        if: success()
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          tag_name: build-${{ github.run_number }}
+          release_name: Build Release ${{ github.run_number }}
+          body: |
+            APK Build for commit ${{ github.sha }}
+            
+            Download the APK from artifacts or release assets
+          draft: false
+          prerelease: true
