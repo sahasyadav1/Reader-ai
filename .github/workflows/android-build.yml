@@ -1,4 +1,4 @@
-name: Reader ai
+name: Build APK
 
 on:
   push:
@@ -14,8 +14,12 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      - run: chmod +x gradlew
-      - run: ./gradlew assembleDebug
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.5'
+      - name: Build Debug APK
+        run: gradle assembleDebug
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug
