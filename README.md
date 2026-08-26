@@ -1,8 +1,4 @@
-# AI Assistant App — MVP
-
-A mobile AI assistant app: double-tap the home screen logo to open a
-streaming chat with Claude or GPT-4o. Built as a modular monolith so it's
-straightforward to scale into a larger product later.
+# AI Assistant App — Build & Deploy Guide
 
 ## Structure
 
@@ -40,7 +36,7 @@ database (a free one on Neon or Supabase works well for local dev) and
 either an `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` — set `AI_PROVIDER`
 to match.
 
-## Running the mobile app
+## Running the mobile app locally
 
 ```bash
 cd mobile
@@ -57,6 +53,78 @@ end-to-end test, call `POST /api/auth/register` from curl/Postman, then
 hardcode the returned token via `setAuthToken()` in `App.tsx` while you
 build out a real auth screen.
 
+## Building APK for Android
+
+### Option 1: Using EAS Build (Recommended)
+
+EAS Build is the easiest way to generate signed APKs without local Android setup.
+
+#### Prerequisites
+- Install EAS CLI: `npm install -g eas-cli`
+- Create free account at [expo.dev](https://expo.dev)
+- Login: `eas login`
+
+#### Build Commands
+
+```bash
+cd mobile
+
+# Build APK for testing/internal distribution
+eas build --platform android --build-type apk
+
+# Build AAB (App Bundle) for Google Play Store
+eas build --platform android --build-type app-bundle
+
+# Using the configured profile from eas.json
+eas build --platform android --profile android-apk
+```
+
+The APK will be built in the cloud and you'll get a download link.
+
+### Option 2: Local Build (Advanced)
+
+Requires Android SDK, Java, and full local setup.
+
+```bash
+cd mobile
+npm install
+npm run build:android  # if configured in package.json
+```
+
+### Option 3: GitHub Actions Automation
+
+Create `.github/workflows/build-apk.yml`:
+
+```yaml
+name: Build APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: |
+          cd mobile
+          npm install
+          npm install -g eas-cli
+      - run: |
+          cd mobile
+          eas build --platform android --build-type apk --non-interactive
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+```
+
+Then add `EAS_TOKEN` to GitHub Secrets from https://expo.dev/settings/tokens
+
 ## Suggested next steps toward a fuller product
 
 1. Add a login/signup screen and store the JWT securely (`expo-secure-store`).
@@ -68,11 +136,28 @@ build out a real auth screen.
    the product spec) for proactive assistant nudges.
 6. CI: lint + typecheck on push, EAS Build for app store binaries.
 
-## Notes on this environment
+## Configuration Files
 
-This was generated in a sandboxed container without network access, so
-none of the code has been `npm install`ed or run here — there's no
-Postgres, mobile simulator, or package registry available in this
-session. Everything above is written to compile and run correctly
-against the stated dependency versions, but please run `npm install`
-and smoke-test both halves locally before treating this as final.
+- `eas.json` - EAS Build configuration with APK build profile
+- `mobile/app.json` - Expo app configuration
+- `mobile/package.json` - Dependencies and scripts
+
+## Troubleshooting
+
+**Build fails with "EAS_TOKEN not found":**
+- Generate token at https://expo.dev/settings/tokens
+- Add to environment or GitHub secrets
+
+**APK size too large:**
+- Enable minification in build profile
+- Remove unused dependencies
+
+**Signing issues:**
+- EAS handles signing automatically for first builds
+- For subsequent builds, signing credentials are cached
+
+## Resources
+
+- [Expo Build Docs](https://docs.expo.dev/build/introduction/)
+- [EAS Build Configuration](https://docs.expo.dev/build-reference/eas-json/)
+- [Android App Distribution](https://docs.expo.dev/build/internal-distribution/)
