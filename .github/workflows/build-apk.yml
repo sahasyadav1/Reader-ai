@@ -31,6 +31,6 @@ jobs:
       
       - run: |
           cd mobile
-          eas build --platform android --build-type apk --non-interactive
+          eas build --platform android --type apk --non-interactive
         env:
           EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
