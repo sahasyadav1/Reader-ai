@@ -5,48 +5,32 @@ on:
     branches:
       - main
       - master
-      - develop
   workflow_dispatch:
-    inputs:
-      build_type:
-        description: 'Build type (apk or app-bundle)'
-        required: true
-        default: 'apk'
-        type: choice
-        options:
-          - apk
-          - app-bundle
 
 jobs:
   build:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      
+      - run: |
+          if [ -f "mobile.zip" ]; then
+            unzip -q mobile.zip
+          fi
+          [ -d "mobile" ] || exit 1
+      
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
-
-      - name: Install EAS CLI
-        run: npm install -g eas-cli
-
-      - name: Install dependencies
-        run: |
-          npm install
-
-      - name: Build APK with EAS
-        run: |
-          eas build --platform android --build-type ${{ github.event.inputs.build_type || 'apk' }} --non-interactive
+      
+      - run: |
+          cd mobile
+          npm install --legacy-peer-deps 2>/dev/null || true
+          npm install -g eas-cli
+      
+      - run: |
+          cd mobile
+          eas build --platform android --build-type apk --non-interactive
         env:
           EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
-
-      - name: Build Summary
-        if: success()
-        run: |
-          echo "✅ APK Build Successful!"
-          echo "Build type: ${{ github.event.inputs.build_type || 'apk' }}"
-          echo "Check EAS dashboard for download link: https://expo.dev/builds"
