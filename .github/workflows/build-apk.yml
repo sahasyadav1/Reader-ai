@@ -12,25 +12,58 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
-      
-      - run: |
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup - Extract and verify
+        run: |
+          echo "🔍 Checking for mobile folder/zip..."
+          
           if [ -f "mobile.zip" ]; then
-            unzip -q mobile.zip
+            echo "Found mobile.zip, extracting..."
+            unzip -o mobile.zip
+            echo "✅ Extracted"
           fi
-          [ -d "mobile" ] || exit 1
-      
-      - uses: actions/setup-node@v4
+          
+          if [ ! -d "mobile" ]; then
+            echo "❌ Mobile folder not found!"
+            ls -la
+            exit 1
+          fi
+          
+          echo "✅ Mobile folder exists"
+          ls -la mobile/ | head -20
+
+      - name: 🔧 Node Setup
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
-      
-      - run: |
+
+      - name: 📝 Install EAS CLI
+        run: |
+          npm install -g eas-cli@latest
+          eas --version
+
+      - name: 🏗️ Build with EAS
+        run: |
           cd mobile
-          npm install --legacy-peer-deps 2>/dev/null || true
-          npm install -g eas-cli
-      
-      - run: |
-          cd mobile
-          eas build --platform android --type apk --non-interactive
+          echo "📂 Current directory: $(pwd)"
+          echo "📄 Files:"
+          ls -la
+          
+          echo ""
+          echo "🚀 Starting EAS build..."
+          eas build --platform android --non-interactive 2>&1
         env:
           EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+
+      - name: ✅ Success
+        if: success()
+        run: |
+          echo ""
+          echo "╔════════════════════════════════════╗"
+          echo "║  ✅ BUILD SUCCESSFUL! ✅           ║"
+          echo "╚════════════════════════════════════╝"
+          echo ""
+          echo "📥 Download APK from:"
+          echo "   https://expo.dev/builds"
