@@ -33,7 +33,7 @@ jobs:
           
           echo "✅ Mobile folder exists"
           ls -la mobile/ | head -20
-
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       - name: 🔧 Node Setup
         uses: actions/setup-node@v4
         with:
